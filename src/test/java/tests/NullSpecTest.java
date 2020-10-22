@@ -19,18 +19,12 @@ import org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest;
 import org.junit.runners.Parameterized.Parameters;
 
 public class NullSpecTest extends CheckerFrameworkPerDirectoryTest {
-    public NullSpecTest(List<File> testFiles) {
-        super(
-                testFiles,
-                NullSpecChecker.class,
-                "NullSpec",
-                "-Anomsgtext",
-                "-Astubs=stubs/",
-                "-nowarn");
-    }
+  public NullSpecTest(List<File> testFiles) {
+    super(testFiles, NullSpecChecker.class, "NullSpec", "-Anomsgtext", "-Astubs=stubs/", "-nowarn");
+  }
 
-    @Parameters
-    public static String[] getTestDirs() {
-        return new String[] {"nullspec-common"};
-    }
+  @Parameters
+  public static String[] getTestDirs() {
+    return new String[] {"nullspec-common"};
+  }
 }

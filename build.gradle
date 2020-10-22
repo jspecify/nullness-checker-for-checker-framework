@@ -45,6 +45,6 @@ clean.doFirst {
 
 spotless {
     java {
-        googleJavaFormat().aosp()
+        googleJavaFormat()
     }
 }
