@@ -11,6 +11,11 @@ configurations {
     errorproneJavac
 }
 
+ext {
+    parentDir = file("${rootDir}/../").absolutePath
+    cfHome = "${parentDir}/checker-framework"
+}
+
 ext.versions = [
         checkerFramework: "3.7.0",
 ]
@@ -46,5 +51,28 @@ clean.doFirst {
 spotless {
     java {
         googleJavaFormat()
+    }
+}
+
+task ensureCheckerFrameworkBuilt() {
+    description 'Clone or update the Checker Framework and then build it and all dependencies'
+    if (file(cfHome).exists()) {
+        exec {
+            workingDir cfHome
+            executable 'git'
+            args = ['pull', '-q']
+            ignoreExitValue = true
+        }
+    } else {
+        exec {
+            workingDir "${cfHome}/../"
+            executable 'git'
+            args = ['clone', '-q', 'https://github.com/jspecify/checker-framework.git']
+        }
+    }
+    exec {
+        workingDir cfHome
+        executable './gradlew'
+        args = ['cloneAndBuildDependencies']
     }
 }
