@@ -57,12 +57,18 @@ spotless {
 task ensureCheckerFrameworkBuilt() {
     description 'Clone or update the Checker Framework and then build it and all dependencies'
     if (file(cfHome).exists()) {
-        exec {
-            workingDir cfHome
-            executable 'git'
-            args = ['pull', '-q']
-            ignoreExitValue = true
+        /* Introduce an autoUpdateCF variable if we want to support that usage.
+        if (autoUpdateCF) {
+            exec {
+                workingDir cfHome
+                executable 'git'
+                args = ['pull', '-q']
+                ignoreExitValue = true
+            }
+        } else {
+            println "Found existing ${cfHome}. Use -PautoUpdateCF=true if you want to git pull automatically."
         }
+        */
     } else {
         exec {
             workingDir "${cfHome}/../"
