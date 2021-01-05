@@ -48,6 +48,12 @@ test {
     }
     // The tests directory is needed for generated output.
     mkdir "${rootDir}/tests"
+
+    testLogging {
+        showStandardStreams = true
+        events "failed"
+        exceptionFormat "full"
+    }
 }
 
 clean.doFirst {
