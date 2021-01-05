@@ -35,7 +35,8 @@ public class NullSpecTest {
           "-nowarn",
           "-Anomsgtext",
           "-Astubs=stubs/",
-          "-AcheckImpl");
+          "-AcheckImpl",
+          "-AsuppressWarnings=conditional.type.incompatible");
     }
 
     @Parameters
@@ -59,6 +60,7 @@ public class NullSpecTest {
           "-Anomsgtext",
           "-Astubs=stubs/",
           "-AcheckImpl",
+          "-AsuppressWarnings=conditional.type.incompatible",
           "-Astrict");
     }
 
@@ -118,6 +120,7 @@ public class NullSpecTest {
         switch (unexpected.getMessage()) {
           case "argument.type.incompatible":
           case "assignment.type.incompatible":
+          case "cast.unsafe":
           case "dereference":
           case "override.param.invalid":
           case "override.return.invalid":
