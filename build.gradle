@@ -46,6 +46,8 @@ test {
     if (!JavaVersion.current().java9Compatible) {
         jvmArgs "-Xbootclasspath/p:${configurations.errorproneJavac.asPath}"
     }
+    // The tests directory is needed for generated output.
+    mkdir "${rootDir}/tests"
 }
 
 clean.doFirst {
