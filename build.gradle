@@ -1,6 +1,9 @@
 plugins {
     id 'java'
     id 'com.diffplug.gradle.spotless' version '4.0.1'
+    id 'eclipse'
+    // https://github.com/tbroyer/gradle-errorprone-plugin
+    id 'net.ltgt.errorprone' version '1.3.0'
 }
 
 repositories {
@@ -14,31 +17,32 @@ configurations {
 ext {
     parentDir = file("${rootDir}/../").absolutePath
     cfHome = "${parentDir}/checker-framework"
+    jspecifyHome = "${parentDir}/jspecify"
 }
-
-ext.versions = [
-        checkerFramework: "3.7.0",
-]
 
 sourceCompatibility = 1.8
 
 dependencies {
-    implementation files('../checker-framework/checker/dist/checker-qual.jar')
-    implementation files('../checker-framework/checker/dist/checker.jar')
+    implementation files("${cfHome}/checker/dist/checker-qual.jar")
+    implementation files("${cfHome}/checker/dist/checker.jar")
 
     // Testing
     testImplementation 'junit:junit:4.12'
-    testImplementation "org.checkerframework:framework-test:${versions.checkerFramework}"
+    testImplementation 'org.plumelib:plume-util:1.3.0'
+    testImplementation files("${cfHome}/framework-test/build/libs/framework-test-3.9.0.jar")
 
     errorproneJavac "com.google.errorprone:javac:9+181-r4173-1"
+    errorprone "com.google.errorprone:error_prone_core:2.4.0"
 }
 
 tasks.withType(JavaCompile).all {
     options.compilerArgs.add("-Xlint:all")
+    // ErrorProne makes suppressing these easier
+    options.compilerArgs.add("-Xlint:-fallthrough")
 }
 
 test {
-    inputs.files("tests/nullspec-common")
+    inputs.files("${jspecifyHome}/samples")
     if (!JavaVersion.current().java9Compatible) {
         jvmArgs "-Xbootclasspath/p:${configurations.errorproneJavac.asPath}"
     }
@@ -86,3 +90,18 @@ task ensureCheckerFrameworkBuilt() {
 }
 
 assemble.dependsOn(ensureCheckerFrameworkBuilt)
+
+// Use `./gradlew eclipseClasspath` to create Eclipse/VSCode configurations
+eclipse.classpath {
+    defaultOutputDir = file("build/default")
+    file.whenMerged { cp ->
+        cp.entries.forEach { cpe ->
+            if (cpe instanceof org.gradle.plugins.ide.eclipse.model.SourceFolder) {
+                cpe.output = cpe.output.replace "bin/", "build/classes/java/"
+            }
+            if (cpe instanceof org.gradle.plugins.ide.eclipse.model.Output) {
+                cpe.path = cpe.path.replace "bin/", "build/"
+            }
+        }
+    }
+}
