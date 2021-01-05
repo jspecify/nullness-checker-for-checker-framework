@@ -159,6 +159,7 @@ public final class NullSpecVisitor extends BaseTypeVisitor<NullSpecAnnotatedType
     return "";
   }
 
+  @Override
   public Void visitBlock(BlockTree tree, Void p) {
     if (checkImpl) {
       return super.visitBlock(tree, p);
