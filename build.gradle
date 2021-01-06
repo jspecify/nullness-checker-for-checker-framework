@@ -41,19 +41,30 @@ tasks.withType(JavaCompile).all {
     options.compilerArgs.add("-Xlint:-fallthrough")
 }
 
-test {
-    inputs.files("${jspecifyHome}/samples")
+tasks.withType(Test) {
     if (!JavaVersion.current().java9Compatible) {
         jvmArgs "-Xbootclasspath/p:${configurations.errorproneJavac.asPath}"
     }
-    // The tests directory is needed for generated output.
-    mkdir "${rootDir}/tests"
 
     testLogging {
+        showStackTraces = false
         showStandardStreams = true
         events "failed"
         exceptionFormat "full"
     }
+}
+
+test {
+    include '**/NullSpecTest$Minimal.class'
+
+    inputs.files("${rootDir}/tests/minimal")
+}
+
+task jspecifySamplesTest(type: Test) {
+    description = 'Run the checker against the JSpecify samples.'
+    group = 'verification'
+
+    inputs.files("${jspecifyHome}/samples")
 }
 
 clean.doFirst {

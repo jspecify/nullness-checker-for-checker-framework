@@ -19,3 +19,5 @@ jobs:
             ${{ runner.os }}-gradle-
       - run: |
           ./gradlew spotlessCheck build --no-daemon
+      - run: |
+          ./gradlew jspecifySamplesTest --no-daemon
