@@ -25,6 +25,7 @@ sourceCompatibility = 1.8
 dependencies {
     implementation files("${cfHome}/checker/dist/checker-qual.jar")
     implementation files("${cfHome}/checker/dist/checker.jar")
+    implementation files("${jspecifyHome}/build/libs/jspecify-0.1.0-SNAPSHOT.jar")
 
     // Testing
     testImplementation 'junit:junit:4.12'
