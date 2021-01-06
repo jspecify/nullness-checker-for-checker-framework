@@ -26,6 +26,25 @@ import org.checkerframework.javacutil.BugInCF;
 import org.junit.runners.Parameterized.Parameters;
 
 public class NullSpecTest {
+  public static class Minimal extends CheckerFrameworkPerDirectoryTest {
+    public Minimal(List<File> testFiles) {
+      super(
+          testFiles,
+          NullSpecChecker.class,
+          "NullSpec",
+          "-nowarn",
+          "-Anomsgtext",
+          "-Astubs=stubs/",
+          "-AcheckImpl",
+          "-AsuppressWarnings=conditional.type.incompatible");
+    }
+
+    @Parameters
+    public static String[] getTestDirs() {
+      return new String[] {"minimal"};
+    }
+  }
+
   public static class Lenient extends CheckerFrameworkPerDirectoryTest {
     public Lenient(List<File> testFiles) {
       super(
