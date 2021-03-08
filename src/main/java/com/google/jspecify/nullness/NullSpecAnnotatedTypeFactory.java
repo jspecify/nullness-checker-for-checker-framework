@@ -29,6 +29,7 @@ import static javax.lang.model.type.TypeKind.ARRAY;
 import static javax.lang.model.type.TypeKind.DECLARED;
 import static javax.lang.model.type.TypeKind.WILDCARD;
 import static org.checkerframework.framework.qual.TypeUseLocation.CONSTRUCTOR_RESULT;
+import static org.checkerframework.framework.qual.TypeUseLocation.EXCEPTION_PARAMETER;
 import static org.checkerframework.framework.qual.TypeUseLocation.IMPLICIT_LOWER_BOUND;
 import static org.checkerframework.framework.qual.TypeUseLocation.OTHERWISE;
 import static org.checkerframework.framework.qual.TypeUseLocation.RECEIVER;
@@ -813,7 +814,16 @@ final class NullSpecAnnotatedTypeFactory
 
     private void addDefaultToTopForLocationsRefinedByDataflow(Element elt) {
       for (TypeUseLocation location : IMPLEMENTATION_VARIABLE_LOCATIONS) {
-        addElementDefault(elt, unionNull, location);
+        /*
+         * Handling exception parameters correctly is hard, so just treat them as if they're
+         * restricted to non-null values. Of course the caught exception is already non-null, so all
+         * this does is forbid users from manually assigning null to an exception parameter.
+         */
+        if (location == EXCEPTION_PARAMETER) {
+          addElementDefault(elt, minusNull, location);
+        } else {
+          addElementDefault(elt, unionNull, location);
+        }
       }
     }
 
@@ -896,18 +906,6 @@ final class NullSpecAnnotatedTypeFactory
   private final class NullSpecTypeAnnotator extends TypeAnnotator {
     NullSpecTypeAnnotator(AnnotatedTypeFactory typeFactory) {
       super(typeFactory);
-    }
-
-    @Override
-    public Void visitUnion(AnnotatedUnionType type, Void p) {
-      /*
-       * Union types arise only with caught exceptions. Caught exceptions are always non-null. Plus,
-       * Java forbids assigning to multicatch exception parameters, so they stay that way.
-       */
-      for (AnnotatedDeclaredType alternative : type.getAlternatives()) {
-        alternative.replaceAnnotation(minusNull);
-      }
-      return super.visitUnion(type, p);
     }
 
     @Override

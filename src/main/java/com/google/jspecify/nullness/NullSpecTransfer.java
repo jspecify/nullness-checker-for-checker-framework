@@ -21,7 +21,6 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
 import static java.util.Collections.unmodifiableSet;
 import static java.util.stream.Collectors.toList;
-import static javax.lang.model.element.ElementKind.EXCEPTION_PARAMETER;
 import static org.checkerframework.dataflow.expression.JavaExpression.fromNode;
 import static org.checkerframework.framework.flow.CFAbstractStore.canInsertJavaExpression;
 import static org.checkerframework.framework.type.AnnotatedTypeMirror.createType;
@@ -55,7 +54,6 @@ import org.checkerframework.dataflow.cfg.node.BinaryOperationNode;
 import org.checkerframework.dataflow.cfg.node.EqualToNode;
 import org.checkerframework.dataflow.cfg.node.FieldAccessNode;
 import org.checkerframework.dataflow.cfg.node.InstanceOfNode;
-import org.checkerframework.dataflow.cfg.node.LocalVariableNode;
 import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.NotEqualNode;
@@ -356,17 +354,6 @@ final class NullSpecTransfer extends CFAbstractTransfer<CFValue, NullSpecStore, 
 
     return new ConditionalTransferResult<>(
         result.getResultValue(), thenStore, elseStore, storeChanged);
-  }
-
-  @Override
-  public TransferResult<CFValue, NullSpecStore> visitLocalVariable(
-      LocalVariableNode node, TransferInput<CFValue, NullSpecStore> input) {
-    TransferResult<CFValue, NullSpecStore> result = super.visitLocalVariable(node, input);
-    if (node.getElement().getKind() == EXCEPTION_PARAMETER
-        && input.getRegularStore().getValue(node) == null) {
-      setResultValueToNonNull(result);
-    }
-    return result;
   }
 
   private boolean refineFutureGetEnclosingClassFromIsAnonymousClass(
