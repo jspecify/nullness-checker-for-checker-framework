@@ -249,11 +249,35 @@ final class NullSpecVisitor extends BaseTypeVisitor<NullSpecAnnotatedTypeFactory
        * to call getAnnotatedType on such trees? So let's not.
        */
     }
+    /*
+     * visitMemberSelect has to look for annotations differently than visitVariable and visitMethod.
+     *
+     * In those other cases, a @Nullable type annotation on the outer type of `Outer.Inner` appears
+     * in the parse tree as an annotation on the variable/method modifiers. (See JLS 9.7.4, which in
+     * turn references 8.3.) Thus, if the method return type is *any* member-select tree, we know we
+     * have a return type of the form `@Nullable Foo.Bar`.
+     *
+     * In this case, we already know that we have some kind of member select, and so we want to look
+     * for annotations on the "left side" of the select (if that side turns out to be a type rather
+     * than, say, an instance, like in `foo.bar()`). But to do so, we need to figure out which
+     * specific tree they would be on. If the expression tree is an annotated type, we look there.
+     * But if it's a parameterized type like `Foo<Bar>`, we have to pull off the `Foo` part, as
+     * that's where the parse tree attaches the annotations.
+     *
+     * I would not be at all surprised if there are additional cases that we still haven't covered.
+     */
     Tree typeToCheckForAnnotations =
         expression.getKind() == PARAMETERIZED_TYPE
             ? ((ParameterizedTypeTree) expression).getType()
             : expression;
     if (typeToCheckForAnnotations.getKind() == ANNOTATED_TYPE) {
+      /*
+       * In all cases in which we report outer.annotated, we know that we're dealing with a true
+       * inner class (`@Nullable Outer.Inner`), not a static nested class (`@Nullable Map.Entry`).
+       * That's because the latter is rejected by javac itself ("scoping construct cannot be
+       * annotated with type-use annotation"). Thus, it's safe for our message to speak specifically
+       * about the inner-class case.
+       */
       checkNoNullnessAnnotations(
           tree,
           ((AnnotatedTypeTree) typeToCheckForAnnotations).getAnnotations(),
