@@ -260,6 +260,49 @@ final class NullSpecTransfer extends CFAbstractTransfer<CFValue, NullSpecStore, 
       setResultValueToNonNull(result);
     }
 
+    if (isReflectiveRead(node)) {
+      /*
+       * Calls to Method.invoke and Field.get can most certainly return null, so we've annotated
+       * those methods accordingly. Still, we're finding that, in practice, users don't benefit much
+       * from being forced to null-check their results. So we're experimenting with assuming that
+       * they return non-null.
+       *
+       * Note that we want to be sure that subsequent code can "demote" the result back to being
+       * @Nullable. That is, inside `if (result == null)`, `result` had better be @Nullable, even
+       * though we previously assumed it was non-null. This happens to work with our current
+       * implementation, but it's easy to see how another implementation could set the type to
+       * "bottom" in that case and thus not issue the errors that we'd like to see.
+       *
+       * If we find that the non-null assumption here prevents "demoting," then we could consider
+       * changing this code to assume a return type with _unspecified_ nullness instead. (This of
+       * course assumes that "demoting" _from unspecified nullness_ to @Nullable continues to work!)
+       * Arguably this is a better option, anyway, since it lets users of "strict mode" see errors
+       * in that case. (But we suspect that few users, if any, will use strict mode. So this is
+       * mostly academic.) It also causes us to show the type in error messages as Object* instead
+       * of Object, which is arguably better (though more noisy).
+       *
+       * The Right Way to address "demoting" is probably to avoid it entirely. Instead, we should
+       * continue to track the result as @Nullable, but we should also track an additional "but
+       * don't issue errors about this" bit. However, this likely would require a bunch of design
+       * work. Plus, it's hard to see how we could communicate to users that a particular type
+       * component "doesn't matter" when printing an error message about a mismatch in some *other*
+       * type component.
+       *
+       * Note that this concern about "demoting" could likewise apply to the other methods that we
+       * unsoundly assume are non-null above. I mention the concern here simply because reflective
+       * reads are the case in which null values seem most likely in practice.
+       *
+       * (OK, there's maybe a fuzzy argument that reflective reads "really have" unspecified
+       * nullness in a sense, since they are "really" a read from a field or method whose nullness
+       * information JSpecify doesn't have its normal access to. But I don't think we want to go
+       * down that road: After all, for almost _any_ @Nullable-returning API, we could make an
+       * argument that the caller "doesn't have access to the information it needs to determine if
+       * the value may be null." That's almost what @Nullable means: "It's null sometimes, and other
+       * times, it's not" :))
+       */
+      setResultValueToNonNull(result);
+    }
+
     if ((nameMatches(method, "Preconditions", "checkState")
             || nameMatches(method, "Preconditions", "checkArgument"))
         && node.getArgument(0) instanceof NotEqualNode) {
@@ -723,6 +766,11 @@ final class NullSpecTransfer extends CFAbstractTransfer<CFValue, NullSpecStore, 
     ExecutableElement method = node.getTarget().getMethod();
     return nameMatches(method, "InvocationTargetException", "getCause")
         || nameMatches(method, "InvocationTargetException", "getTargetException");
+  }
+
+  private boolean isReflectiveRead(MethodInvocationNode node) {
+    ExecutableElement method = node.getTarget().getMethod();
+    return nameMatches(method, "Field", "get") || nameMatches(method, "Method", "invoke");
   }
 
   private AnnotatedTypeMirror typeWithTopLevelAnnotationsOnly(
