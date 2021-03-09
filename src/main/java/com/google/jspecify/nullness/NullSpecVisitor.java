@@ -20,15 +20,14 @@ import static com.google.jspecify.nullness.Util.onlyExecutableWithName;
 import static com.sun.source.tree.Tree.Kind.ANNOTATED_TYPE;
 import static com.sun.source.tree.Tree.Kind.ARRAY_TYPE;
 import static com.sun.source.tree.Tree.Kind.EXTENDS_WILDCARD;
+import static com.sun.source.tree.Tree.Kind.MEMBER_SELECT;
+import static com.sun.source.tree.Tree.Kind.PARAMETERIZED_TYPE;
 import static com.sun.source.tree.Tree.Kind.PRIMITIVE_TYPE;
 import static com.sun.source.tree.Tree.Kind.SUPER_WILDCARD;
 import static com.sun.source.tree.Tree.Kind.UNBOUNDED_WILDCARD;
 import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
 import static javax.lang.model.element.ElementKind.ENUM_CONSTANT;
 import static javax.lang.model.element.ElementKind.PACKAGE;
-import static javax.lang.model.type.TypeKind.DECLARED;
-import static javax.tools.Diagnostic.Kind.ERROR;
 import static org.checkerframework.framework.type.AnnotatedTypeMirror.createType;
 import static org.checkerframework.framework.util.AnnotatedTypes.asSuper;
 import static org.checkerframework.javacutil.AnnotationUtils.areSameByName;
@@ -53,6 +52,7 @@ import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewClassTree;
+import com.sun.source.tree.ParameterizedTypeTree;
 import com.sun.source.tree.ParenthesizedTree;
 import com.sun.source.tree.SynchronizedTree;
 import com.sun.source.tree.ThrowTree;
@@ -72,15 +72,10 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import org.checkerframework.common.basetype.BaseTypeChecker;
-import org.checkerframework.common.basetype.BaseTypeValidator;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
-import org.checkerframework.common.basetype.TypeValidator;
-import org.checkerframework.framework.source.DiagMessage;
-import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
-import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.javacutil.AnnotationBuilder;
 import org.jspecify.annotations.Nullable;
 import org.jspecify.annotations.NullnessUnspecified;
@@ -226,12 +221,13 @@ final class NullSpecVisitor extends BaseTypeVisitor<NullSpecAnnotatedTypeFactory
   @Override
   public Void visitMemberSelect(MemberSelectTree tree, Void p) {
     Element element = elementFromTree(tree);
+    ExpressionTree expression = tree.getExpression();
     if (element != null
         && !element.getKind().isClass()
         && !element.getKind().isInterface()
         && element.getKind() != PACKAGE
         && !tree.getIdentifier().contentEquals("class")) {
-      ensureNonNull(tree.getExpression());
+      ensureNonNull(expression);
       /*
        * By contrast, if it's a class/interface, the select must be on a type, like `Foo.Baz` or
        * `Foo<Bar>.Baz`, or it must be a fully qualified type name, like `java.util.List`. In either
@@ -252,6 +248,16 @@ final class NullSpecVisitor extends BaseTypeVisitor<NullSpecAnnotatedTypeFactory
        * Not every MemberSelectTree is an "expression" in the usual sense. Perhaps it's our job not
        * to call getAnnotatedType on such trees? So let's not.
        */
+    }
+    Tree typeToCheckForAnnotations =
+        expression.getKind() == PARAMETERIZED_TYPE
+            ? ((ParameterizedTypeTree) expression).getType()
+            : expression;
+    if (typeToCheckForAnnotations.getKind() == ANNOTATED_TYPE) {
+      checkNoNullnessAnnotations(
+          tree,
+          ((AnnotatedTypeTree) typeToCheckForAnnotations).getAnnotations(),
+          "outer.annotated");
     }
     return super.visitMemberSelect(tree, p);
   }
@@ -486,6 +492,8 @@ final class NullSpecVisitor extends BaseTypeVisitor<NullSpecAnnotatedTypeFactory
     List<? extends AnnotationTree> annotations = tree.getModifiers().getAnnotations();
     if (isPrimitiveOrArrayOfPrimitive(tree.getType())) {
       checkNoNullnessAnnotations(tree, annotations, "primitive.annotated");
+    } else if (tree.getType().getKind() == MEMBER_SELECT) {
+      checkNoNullnessAnnotations(tree, annotations, "outer.annotated");
     }
 
     ElementKind kind = elementFromDeclaration(tree).getKind();
@@ -519,6 +527,8 @@ final class NullSpecVisitor extends BaseTypeVisitor<NullSpecAnnotatedTypeFactory
     if (returnType != null) {
       if (isPrimitiveOrArrayOfPrimitive(returnType)) {
         checkNoNullnessAnnotations(tree, annotations, "primitive.annotated");
+      } else if (returnType.getKind() == MEMBER_SELECT) {
+        checkNoNullnessAnnotations(tree, annotations, "outer.annotated");
       }
     }
     return super.visitMethod(tree, p);
@@ -582,45 +592,6 @@ final class NullSpecVisitor extends BaseTypeVisitor<NullSpecAnnotatedTypeFactory
     AnnotatedExecutableType functionType = atypeFactory.getFunctionTypeFromTree(tree);
     AnnotatedTypeMirror parameterType = functionType.getParameterTypes().get(0);
     return atypeFactory.isNullExclusiveUnderEveryParameterization(parameterType);
-  }
-
-  @Override
-  protected TypeValidator createTypeValidator() {
-    return new NullSpecTypeValidator(checker, this, atypeFactory);
-  }
-
-  private static final class NullSpecTypeValidator extends BaseTypeValidator {
-    NullSpecTypeValidator(
-        BaseTypeChecker checker, BaseTypeVisitor<?> visitor, AnnotatedTypeFactory atypeFactory) {
-      super(checker, visitor, atypeFactory);
-    }
-
-    @Override
-    protected List<DiagMessage> isTopLevelValidType(
-        QualifierHierarchy qualifierHierarchy, AnnotatedTypeMirror type) {
-      /*
-       * This method is where we report some errors of the form "X should not be annotated." But
-       * note that we report some other errors of that form in NullSpecVisitor methods like
-       * visitAnnotatedType.
-       *
-       * TODO(cpovirk): It might actually make more sense to report *all* such errors in
-       * NullSpecVisitor.visit* methods, especially to ensure that we don't report errors for
-       * declarations that appear in library dependencies. However, those methods make it trickier
-       * to ensure that we visit *all* annotated types, as discussed in a comment on
-       * visitAnnotatedType above.
-       */
-      if (type.getKind() == DECLARED) {
-        AnnotatedDeclaredType enclosingType = ((AnnotatedDeclaredType) type).getEnclosingType();
-        if (enclosingType != null && hasNullableOrNullnessUnspecified(enclosingType)) {
-          return singletonList(new DiagMessage(ERROR, "outer.annotated"));
-        }
-      }
-      return super.isTopLevelValidType(qualifierHierarchy, type);
-    }
-
-    boolean hasNullableOrNullnessUnspecified(AnnotatedTypeMirror type) {
-      return type.hasAnnotation(Nullable.class) || type.hasAnnotation(NullnessUnspecified.class);
-    }
   }
 
   @Override
