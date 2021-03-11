@@ -67,8 +67,7 @@ SomeTest.java:7: error: [nullness] incompatible types in return.
 1 error
 
 
-# Run tests (some of which fail at the moment -- we plan to mark the "expected
-# failures" so that our CI can at least detect regressions):
+# Run tests:
 
 $ ./gradlew jspecifySamplesTest
 
@@ -76,4 +75,10 @@ $ ./gradlew jspecifySamplesTest
 # During development, you may wish to pass `-x ensureCheckerFrameworkBuilt` to
 # `gradlew` for every build after your first. This will prevent the build
 # process from also rebuilding some of our *dependencies* (which is slow).
+
+# Also note: For some of the repos that the build process clones, it creates
+# single-branch clones that use an https URL instead of a git URL. You may want
+# to convert them into more "normal" GitHub clones:
+
+$ perl -pi -e 's#https://github.com/#git\@github.com:#; s#fetch = \+refs/heads/(main|master):refs/remotes/origin/(main|master)#fetch = +refs/heads/*:refs/remotes/origin/*#;' ../*/.git/config
 ```
