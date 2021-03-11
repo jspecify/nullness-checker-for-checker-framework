@@ -60,7 +60,7 @@ test {
     systemProperty 'emit.test.debug', 'true'
 
     inputs.files("${rootDir}/tests/minimal")
-    maxHeapSize = "4096m"
+    maxHeapSize = "5096m"
     jvmArgs '-XX:MaxMetaspaceSize=1024m'
     forkEvery 1
 }
@@ -110,7 +110,8 @@ task ensureCheckerFrameworkBuilt() {
         exec {
             workingDir cfHome
             executable './gradlew'
-            args = ['cloneAndBuildDependencies']
+            // hmm bad in general but maybe good for CI? would be nice to propagate this to annotation-tools and jspecify, but at least those are smaller
+            args = ['--no-daemon', 'cloneAndBuildDependencies']
         }
 
         // We test using some modified samples in a different branch of the jspecify repo, so we want to change to that branch.
