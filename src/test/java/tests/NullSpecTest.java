@@ -36,6 +36,7 @@ public class NullSpecTest {
           "-Anomsgtext",
           "-AcheckImpl",
           "-AsuppressWarnings=conditional.type.incompatible");
+      checkerOptions.remove(checkerOptions.size() - 1); // remove -AcheckJavaParserVisitor
     }
 
     @Parameters
@@ -54,6 +55,7 @@ public class NullSpecTest {
           "-Anomsgtext",
           "-AcheckImpl",
           "-AsuppressWarnings=conditional.type.incompatible");
+      checkerOptions.remove(checkerOptions.size() - 1); // remove -AcheckJavaParserVisitor
     }
 
     @Parameters
@@ -78,6 +80,7 @@ public class NullSpecTest {
           "-AcheckImpl",
           "-AsuppressWarnings=conditional.type.incompatible",
           "-Astrict");
+      checkerOptions.remove(checkerOptions.size() - 1); // remove -AcheckJavaParserVisitor
     }
 
     @Parameters

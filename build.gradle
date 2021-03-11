@@ -57,6 +57,7 @@ tasks.withType(Test) {
 
 test {
     include '**/NullSpecTest$Minimal.class'
+    systemProperty 'emit.test.debug', 'true'
 
     inputs.files("${rootDir}/tests/minimal")
 }
