@@ -60,6 +60,8 @@ test {
     systemProperty 'emit.test.debug', 'true'
 
     inputs.files("${rootDir}/tests/minimal")
+    maxHeapSize = "4096m"
+    jvmArgs '-XX:MaxMetaspaceSize=1024m'
 }
 
 task jspecifySamplesTest(type: Test) {
