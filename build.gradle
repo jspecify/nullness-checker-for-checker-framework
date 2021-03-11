@@ -62,6 +62,7 @@ test {
     inputs.files("${rootDir}/tests/minimal")
     maxHeapSize = "4096m"
     jvmArgs '-XX:MaxMetaspaceSize=1024m'
+    forkEvery 1
 }
 
 task jspecifySamplesTest(type: Test) {
