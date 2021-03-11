@@ -1355,6 +1355,15 @@ final class NullSpecAnnotatedTypeFactory
      */
   }
 
+  @Override
+  protected void applyQualifierParameterDefaults(Tree tree, AnnotatedTypeMirror type) {
+    /*
+     * The supermethod implements support for HasQualifierParameter, which we don't use. That's
+     * fortunate, as the supermethod can trigger infinite recursion (almost certainly because of our
+     * hacky changes to stub-file parsing) -- though so far only in our GitHub Actions CI?
+     */
+  }
+
   private static TypeParameterElement correspondingTypeParameter(AnnotatedWildcardType type) {
     /*
      * type.getTypeVariable() is not available in all cases that we need.
