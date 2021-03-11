@@ -1356,7 +1356,7 @@ final class NullSpecAnnotatedTypeFactory
   }
 
   @Override
-  protected void applyQualifierParameterDefaults(Tree tree, AnnotatedTypeMirror type) {
+  protected void applyQualifierParameterDefaults(Element elt, AnnotatedTypeMirror type) {
     /*
      * The supermethod implements support for HasQualifierParameter, which we don't use. That's
      * fortunate, as the supermethod can trigger infinite recursion (almost certainly because of our
