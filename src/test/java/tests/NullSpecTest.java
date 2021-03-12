@@ -187,4 +187,5 @@ public class NullSpecTest {
         throw new BugInCF("Unexpected missing diagnostic: " + missing.getMessage());
     }
   }
+  // no-op change
 }
