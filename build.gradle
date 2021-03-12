@@ -106,7 +106,8 @@ task ensureCheckerFrameworkBuilt() {
         exec {
             workingDir cfHome
             executable './gradlew'
-            args = ['cloneAndBuildDependencies']
+            // Skip Javadoc to save time. Perform a release build so that we repackage javaparser (not that that seems to matter here, but it's consistent with how the Checker Framework would be deployed).
+            args = ['cloneAndBuildDependencies', '-x', 'javadoc', '-x', 'allJavadoc', '-Prelease=true']
         }
 
         // We test using some modified samples in a different branch of the jspecify repo, so we want to change to that branch.

@@ -20,4 +20,4 @@ jobs:
       - run: |
           ./gradlew spotlessCheck build --no-daemon
       - run: |
-          ./gradlew jspecifySamplesTest --no-daemon
+          ./gradlew jspecifySamplesTest -x maybeCloneAndBuildDependencies -x cloneTypetoolsJdk --no-daemon
